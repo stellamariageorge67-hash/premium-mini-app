@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DY SHOWS 🎥</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --bg3: #1a1a24;
+      --accent: #e50914;
+      --accent2: #ff6b35;
+      --gold: #f5c518;
+      --text: #f0f0f0;
+      --text2: #a0a0b0;
+      --radius: 12px;
+      --font-serif: 'Lora', 'Georgia', serif;
+      --font-sans: 'Inter', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Dynamic blurred background */
+    #bg-blur {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      transition: background-image 1.2s ease;
+      background-size: cover;
+      background-position: center;
+      filter: blur(60px) brightness(0.18) saturate(1.6);
+      transform: scale(1.1);
+    }
+
+    /* Header */
+    #header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: linear-gradient(to bottom, rgba(10,10,15,0.98) 60%, transparent);
+      padding: 16px 16px 8px;
+    }
+    #header h1 {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #header p {
+      color: var(--text2);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    /* Search */
+    #search-wrap {
+      padding: 8px 16px 12px;
+      position: relative;
+      z-index: 10;
+    }
+    #search-wrap input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 50px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: var(--font-sans);
+      padding: 10px 16px 10px 40px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    #search-wrap input:focus { border-color: var(--accent); }
+    #search-wrap .icon {
+      position: absolute;
+      left: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text2);
+      font-size: 15px;
+    }
+
+    /* Filter tabs */
+    #filter-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      position: relative;
+      z-index: 10;
+    }
+    #filter-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.07);
+      color: var(--text2);
+      font-size: 13px;
+      font-family: var(--font-sans);
+      padding: 6px 14px;
+      border-radius: 50px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* Grid */
+    #content-grid {
+      position: relative;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 0 10px 80px;
+    }
+    .poster-card {
+      aspect-ratio: 2/3;
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .poster-card:active { transform: scale(0.95); }
+    .poster-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .poster-card .shimmer {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .poster-card .overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .poster-card:hover .overlay { opacity: 1; }
+
+    /* Empty state */
+    #empty-state {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 60px 20px;
+      display: none;
+    }
+    #empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    #empty-state p { color: var(--text2); font-size: 15px; }
+
+    /* Details View */
+    #detail-view {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: var(--bg);
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    #detail-view.open { transform: translateY(0); }
+
+    .detail-backdrop {
+      position: relative;
+      height: 280px;
+      overflow: hidden;
+    }
+    .detail-backdrop img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .detail-backdrop-blur {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(10,10,15,0.2) 0%, var(--bg) 90%);
+    }
+
+    .detail-back {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(0,0,0,0.6);
+      border: none;
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+
+    .detail-content {
+      padding: 0 16px 100px;
+    }
+
+    .detail-title {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+
+    .detail-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .detail-badge {
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 12px;
+      color: var(--text2);
+    }
+    .detail-badge.type { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .detail-rating {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+    }
+
+    /* Trailer */
+    .trailer-wrap {
+      position: relative;
+      padding-bottom: 56.25%;
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 20px;
+      background: var(--bg3);
+    }
+    .trailer-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .trailer-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .trailer-placeholder .play-btn {
+      width: 60px;
+      height: 60px;
+      background: rgba(229,9,20,0.9);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .trailer-placeholder:hover .play-btn { background: var(--accent); transform: scale(1.05); }
+    .trailer-placeholder p { color: var(--text2); font-size: 13px; }
+
+    /* About */
+    .detail-about-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text2);
+      margin-bottom: 8px;
+    }
+    .detail-about {
+      font-size: 14px;
+      line-height: 1.7;
+      color: rgba(240,240,240,0.85);
+      margin-bottom: 24px;
+    }
+
+    /* Download button */
+    .btn-download {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+    .btn-download:active { transform: scale(0.98); background: #c40812; }
+
+    /* Download Modal */
+    #download-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      display: none;
+      align-items: flex-end;
+    }
+    #download-modal.open { display: flex; }
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+    }
+    .modal-sheet {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      background: var(--bg2);
+      border-radius: 20px 20px 0 0;
+      padding: 20px 16px 40px;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-handle {
+      width: 40px;
+      height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+    .modal-title {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+    .quality-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .quality-option:hover { border-color: var(--accent); background: rgba(229,9,20,0.08); }
+    .quality-option:active { transform: scale(0.98); }
+    .quality-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .quality-badge {
+      background: rgba(229,9,20,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(229,9,20,0.3);
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .quality-name { font-size: 14px; color: var(--text); }
+    .quality-arrow { color: var(--text2); font-size: 16px; }
+
+    /* Admin panel */
+    #admin-view {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: var(--bg);
+      overflow-y: auto;
+      display: none;
+    }
+    #admin-view.open { display: block; }
+    .admin-header {
+      padding: 20px 16px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .admin-header h2 {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .admin-back {
+      background: var(--bg3);
+      border: none;
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .admin-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .admin-item-info { flex: 1; min-width: 0; }
+    .admin-item-title {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .admin-item-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .btn-delete {
+      background: rgba(229,9,20,0.12);
+      border: 1px solid rgba(229,9,20,0.25);
+      color: var(--accent);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: background 0.2s;
+      white-space: nowrap;
+      margin-left: 10px;
+    }
+    .btn-delete:active { background: rgba(229,9,20,0.3); }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 50px;
+      font-size: 14px;
+      z-index: 999;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+      backdrop-filter: blur(12px);
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.success { border-color: #22c55e; color: #86efac; }
+    #toast.error { border-color: var(--accent); color: #fca5a5; }
+
+    /* Loading */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      transition: opacity 0.4s;
+    }
+    #loading.hide { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(229,9,20,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading h2 {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <h2>DY SHOWS 🎥</h2>
+</div>
+
+<div id="bg-blur"></div>
+
+<div id="header">
+  <h1>DY SHOWS 🎥</h1>
+  <p>Movies &amp; Series</p>
+</div>
+
+<div id="search-wrap">
+  <span class="icon">🔍</span>
+  <input type="search" id="search-input" placeholder="Search titles, genres..." autocomplete="off" />
+</div>
+
+<div id="filter-tabs">
+  <button class="tab-btn active" data-filter="all">All</button>
+  <button class="tab-btn" data-filter="movie">Movies</button>
+  <button class="tab-btn" data-filter="series">Series</button>
+</div>
+
+<div id="content-grid"></div>
+<div id="empty-state">
+  <div class="icon">🎬</div>
+  <p>No content found.<br>Try a different search.</p>
+</div>
+
+<!-- Detail View -->
+<div id="detail-view">
+  <div class="detail-backdrop">
+    <img id="detail-poster" src="" alt="" />
+    <div class="detail-backdrop-blur"></div>
+    <button class="detail-back" onclick="closeDetail()">←</button>
+  </div>
+  <div class="detail-content">
+    <div class="detail-title" id="detail-title"></div>
+    <div class="detail-meta">
+      <span class="detail-badge type" id="detail-type"></span>
+      <span class="detail-badge" id="detail-genre"></span>
+      <span class="detail-rating" id="detail-rating"></span>
+    </div>
+    <div class="trailer-wrap" id="trailer-wrap">
+      <div class="trailer-placeholder" id="trailer-placeholder" onclick="loadTrailer()">
+        <div class="play-btn">▶</div>
+        <p>Watch Trailer</p>
+      </div>
+    </div>
+    <div class="detail-about-label">About</div>
+    <div class="detail-about" id="detail-about"></div>
+    <button class="btn-download" onclick="openDownload()">
+      ⬇ Download
+    </button>
+  </div>
+</div>
+
+<!-- Download Modal -->
+<div id="download-modal">
+  <div class="modal-overlay" onclick="closeDownload()"></div>
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-sub">Choose your preferred quality</div>
+    <div id="quality-list"></div>
+  </div>
+</div>
+
+<!-- Admin View -->
+<div id="admin-view">
+  <div class="admin-header">
+    <button class="admin-back" onclick="closeAdmin()">←</button>
+    <h2>Admin Panel</h2>
+  </div>
+  <div id="admin-list"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+  }
+
+  const userId = tg?.initDataUnsafe?.user?.id || null;
+  const isAdmin = tg?.initDataUnsafe?.start_param === "admin" ||
+    new URLSearchParams(location.search).get("admin") === "1";
+
+  let allContent = [];
+  let currentFilter = "all";
+  let currentSearch = "";
+  let currentItem = null;
+  let currentTrailerUrl = null;
+  let trailerLoaded = false;
+  let bgImages = [];
+  let bgIndex = 0;
+
+  async function fetchContent() {
+    try {
+      const res = await fetch("/api/content");
+      if (!res.ok) throw new Error("Failed to fetch");
+      allContent = await res.json();
+      renderGrid();
+      updateBgBlur();
+    } catch (e) {
+      showToast("Failed to load content", "error");
+    } finally {
+      document.getElementById("loading").classList.add("hide");
+    }
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById("content-grid");
+    const empty = document.getElementById("empty-state");
+
+    let items = allContent;
+
+    if (currentFilter !== "all") {
+      items = items.filter(i => i.type === currentFilter);
+    }
+
+    if (currentSearch.trim()) {
+      const q = currentSearch.toLowerCase();
+      items = items.filter(i =>
+        i.title.toLowerCase().includes(q) || i.genre.toLowerCase().includes(q)
+      );
+    }
+
+    if (items.length === 0) {
+      grid.innerHTML = "";
+      empty.style.display = "block";
+      return;
+    }
+
+    empty.style.display = "none";
+    grid.innerHTML = items.map(item => `
+      <div class="poster-card" onclick="openDetail('${item.id}')">
+        <img src="${item.poster_url}" alt="${escHtml(item.title)}" loading="lazy"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='none';"
+          onload="this.style.opacity=1" style="opacity:0;transition:opacity 0.4s" />
+        <div class="overlay"></div>
+      </div>
+    `).join("");
+  }
+
+  function updateBgBlur() {
+    if (!allContent.length) return;
+    const posters = allContent.map(i => i.poster_url).filter(Boolean);
+    if (!posters.length) return;
+
+    const el = document.getElementById("bg-blur");
+    const idx = Math.floor(Math.random() * posters.length);
+    el.style.backgroundImage = `url(${posters[idx]})`;
+
+    setInterval(() => {
+      const next = Math.floor(Math.random() * posters.length);
+      el.style.backgroundImage = `url(${posters[next]})`;
+    }, 8000);
+  }
+
+  async function openDetail(id) {
+    const item = allContent.find(i => i.id === id);
+    if (!item) return;
+
+    currentItem = item;
+    trailerLoaded = false;
+    currentTrailerUrl = item.trailer_url;
+
+    document.getElementById("detail-poster").src = item.poster_url;
+    document.getElementById("detail-title").textContent = item.title;
+    document.getElementById("detail-type").textContent = item.type === "movie" ? "Movie" : "Series";
+    document.getElementById("detail-genre").textContent = item.genre;
+    document.getElementById("detail-about").textContent = item.about_text;
+
+    const rating = item.rating || 0;
+    document.getElementById("detail-rating").innerHTML = rating > 0 ? `★ ${rating.toFixed(1)}` : "";
+
+    const trailerWrap = document.getElementById("trailer-wrap");
+    trailerWrap.innerHTML = `
+      <div class="trailer-placeholder" id="trailer-placeholder" onclick="loadTrailer()">
+        <div class="play-btn">▶</div>
+        <p>Watch Trailer</p>
+      </div>
+    `;
+
+    document.getElementById("bg-blur").style.backgroundImage = `url(${item.poster_url})`;
+
+    document.getElementById("detail-view").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeDetail() {
+    document.getElementById("detail-view").classList.remove("open");
+    document.body.style.overflow = "";
+    currentItem = null;
+    trailerLoaded = false;
+    updateBgBlur();
+  }
+
+  function loadTrailer() {
+    if (!currentTrailerUrl || trailerLoaded) return;
+    trailerLoaded = true;
+
+    let videoId = "";
+    const match = currentTrailerUrl.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+    if (match) videoId = match[1];
+
+    const trailerWrap = document.getElementById("trailer-wrap");
+    if (videoId) {
+      trailerWrap.innerHTML = `<iframe
+        src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0"
+        allowfullscreen allow="autoplay; encrypted-media"
+      ></iframe>`;
+    } else {
+      showToast("No trailer available", "error");
+    }
+  }
+
+  async function openDownload() {
+    if (!currentItem) return;
+    if (!userId) {
+      showToast("Open this app inside Telegram", "error");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/content/${currentItem.id}`);
+      const data = await res.json();
+      const files = data.files || [];
+
+      if (files.length === 0) {
+        showToast("No download files available", "error");
+        return;
+      }
+
+      document.getElementById("modal-title").textContent = currentItem.title;
+      const list = document.getElementById("quality-list");
+      list.innerHTML = files.map(f => `
+        <div class="quality-option" onclick="downloadFile('${f.telegram_file_id}', '${escHtml(f.quality)}')">
+          <div class="quality-label">
+            <span class="quality-badge">${escHtml(f.quality)}</span>
+            <span class="quality-name">Download ${escHtml(f.quality)}</span>
+          </div>
+          <span class="quality-arrow">→</span>
+        </div>
+      `).join("");
+
+      document.getElementById("download-modal").classList.add("open");
+    } catch (e) {
+      showToast("Failed to load files", "error");
+    }
+  }
+
+  function closeDownload() {
+    document.getElementById("download-modal").classList.remove("open");
+  }
+
+  async function downloadFile(fileId, quality) {
+    closeDownload();
+    showToast(`Sending ${quality} to your Telegram...`);
+
+    try {
+      const res = await fetch("/api/content/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, file_id: fileId, quality }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`${quality} sent to your Telegram!`, "success");
+      } else {
+        showToast("Failed to send file", "error");
+      }
+    } catch (e) {
+      showToast("Network error. Try again.", "error");
+    }
+  }
+
+  function openAdmin() {
+    if (!isAdmin) return;
+    loadAdminContent();
+    document.getElementById("admin-view").classList.add("open");
+  }
+
+  function closeAdmin() {
+    document.getElementById("admin-view").classList.remove("open");
+  }
+
+  async function loadAdminContent() {
+    const list = document.getElementById("admin-list");
+    list.innerHTML = '<div style="padding:20px;color:var(--text2)">Loading...</div>';
+    try {
+      const res = await fetch("/api/content");
+      const items = await res.json();
+      list.innerHTML = items.map(item => `
+        <div class="admin-item">
+          <div class="admin-item-info">
+            <div class="admin-item-title">${escHtml(item.title)}</div>
+            <div class="admin-item-meta">${item.type} · ${item.genre}</div>
+          </div>
+          <button class="btn-delete" onclick="deleteContent('${item.id}', '${escHtml(item.title)}')">Delete</button>
+        </div>
+      `).join("") || '<div style="padding:20px;color:var(--text2)">No content yet.</div>';
+    } catch (e) {
+      list.innerHTML = '<div style="padding:20px;color:var(--accent)">Failed to load.</div>';
+    }
+  }
+
+  async function deleteContent(id, title) {
+    if (!confirm(`Delete "${title}"?`)) return;
+    try {
+      const res = await fetch(`/api/content/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`"${title}" deleted`, "success");
+        allContent = allContent.filter(i => i.id !== id);
+        renderGrid();
+        loadAdminContent();
+      } else {
+        showToast("Failed to delete", "error");
+      }
+    } catch (e) {
+      showToast("Network error", "error");
+    }
+  }
+
+  function showToast(msg, type = "") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = "show " + type;
+    setTimeout(() => { t.className = type; }, 3000);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // Filter tabs
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.filter;
+      renderGrid();
+    });
+  });
+
+  // Search
+  document.getElementById("search-input").addEventListener("input", e => {
+    currentSearch = e.target.value;
+    renderGrid();
+  });
+
+  // Admin mode
+  if (isAdmin) {
+    setTimeout(openAdmin, 300);
+  }
+
+  fetchContent();
+</script>
+</body>
+</html>
